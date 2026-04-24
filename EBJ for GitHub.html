@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+    <meta charset="UTF-8">
+    <title>Snake</title>
+
+    <style>
+        body {
+            background: #111;
+            color: white;
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+
+        canvas {
+            background: black;
+            border: 2px solid white;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>🐍 Snake</h1>
+<p>Bruk piltastene</p>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<script>
+    const canvas = document.getElementById("game");
+    const ctx = canvas.getContext("2d");
+
+    const gridSize = 20;
+    const tiles = canvas.width / gridSize;
+
+    let snake = [{ x: 10, y: 10 }];
+    let direction = { x: 1, y: 0 };
+    let food = randomFood();
+    let running = true;
+
+    function randomFood() {
+        return {
+            x: Math.floor(Math.random() * tiles),
+            y: Math.floor(Math.random() * tiles)
