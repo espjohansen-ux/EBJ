@@ -29,9 +29,17 @@
 
 <script>
 /* =========================
-   Grunnoppsett
+   Spilltilstander
    ========================= */
+const PLAY = "play";
+const WIN = "win";
+const GAMEOVER = "gameover";
 
+let state = PLAY;
+
+/* =========================
+   Canvas og grid
+   ========================= */
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 
@@ -41,15 +49,17 @@ const sizeY = canvas.height / grid;
 
 const STAR_COUNT = 20;
 
-let snake, dx, dy, speed, running;
+/* =========================
+   Spillvariabler
+   ========================= */
+let snake, dx, dy, speed;
 let stars = [];
 let fireworks = [];
-let gameWon = false;
+let winStartTime = null;
 
 /* =========================
-   Hjelpefunksjoner
+   Hjelp
    ========================= */
-
 function randomPos() {
   return {
     x: Math.floor(Math.random() * sizeX),
@@ -58,17 +68,15 @@ function randomPos() {
 }
 
 /* =========================
-   Initialisering / restart
+   Init / restart
    ========================= */
-
 function initGame() {
   snake = [{x: 15, y: 15}];
-  dx = 1;
-  dy = 0;
+  dx = 1; dy = 0;
   speed = 200;
-  running = true;
-  gameWon = false;
+  state = PLAY;
   fireworks = [];
+  winStartTime = null;
 
   stars = [];
   while (stars.length < STAR_COUNT) {
@@ -76,31 +84,29 @@ function initGame() {
   }
 
   draw();
-  gameLoop();
 }
 
 /* =========================
    Tegning
    ========================= */
-
 function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0,0,canvas.width,canvas.height);
 
-  /* Stjerner */
+  // stjerner
   ctx.fillStyle = "yellow";
   stars.forEach(s => {
     ctx.beginPath();
-    ctx.arc(s.x * grid + 10, s.y * grid + 10, 6, 0, Math.PI * 2);
+    ctx.arc(s.x*grid+10, s.y*grid+10, 6, 0, Math.PI*2);
     ctx.fill();
   });
 
-  /* Slange */
+  // slange
   ctx.fillStyle = "lime";
   snake.forEach(p => {
-    ctx.fillRect(p.x * grid, p.y * grid, grid - 1, grid - 1);
+    ctx.fillRect(p.x*grid, p.y*grid, grid-1, grid-1);
   });
 
-  /* Fyrverkeri */
+  // fyrverkeri
   fireworks.forEach(p => {
     ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 4, 4);
@@ -117,102 +123,85 @@ function draw() {
 /* =========================
    Gangestykke
    ========================= */
-
 function askMultiplication() {
-  const a = Math.ceil(Math.random() * 10);
-  const b = Math.ceil(Math.random() * 10);
+  const a = Math.ceil(Math.random()*10);
+  const b = Math.ceil(Math.random()*10);
   const answer = prompt(`Hva er ${a} × ${b}?`);
-  return parseInt(answer) === a * b;
+  return parseInt(answer) === a*b;
 }
 
 /* =========================
-   Fyrverkeri og seier
+   Fyrverkeri
    ========================= */
-
 function spawnFireworks() {
   for (let i = 0; i < 200; i++) {
     fireworks.push({
-      x: canvas.width / 2,
-      y: canvas.height / 2,
-      vx: (Math.random() - 0.5) * 6,
-      vy: (Math.random() - 0.5) * 6,
+      x: canvas.width/2,
+      y: canvas.height/2,
+      vx: (Math.random()-0.5)*6,
+      vy: (Math.random()-0.5)*6,
       life: 60,
-      color: `hsl(${Math.random() * 360}, 100%, 60%)`
+      color: `hsl(${Math.random()*360},100%,60%)`
     });
   }
-}
-
-function winSequence() {
-  gameWon = true;
-  running = false;
-  spawnFireworks();
-
-  const start = Date.now();
-
-  const interval = setInterval(() => {
-    draw();
-
-    ctx.fillStyle = "white";
-    ctx.font = "30px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText("🎉 Gratulerer!", canvas.width / 2, canvas.height / 2 - 20);
-    ctx.fillText("Du klarte alle stjernene!", canvas.width / 2, canvas.height / 2 + 20);
-
-    if (Date.now() - start > 5000) {
-      clearInterval(interval);
-      if (confirm("Vil du spille igjen?")) {
-        initGame();
-      }
-    }
-  }, 100);
 }
 
 /* =========================
    Spilloppdatering
    ========================= */
-
 function update() {
-  if (!running) return;
 
-  let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+  if (state === PLAY) {
 
-  /* Refleksjon i vegg */
-  if (head.x < 0 || head.x >= sizeX) {
-    dx *= -1;
-    head.x = snake[0].x + dx;
-  }
-  if (head.y < 0 || head.y >= sizeY) {
-    dy *= -1;
-    head.y = snake[0].y + dy;
-  }
+    let head = {x: snake[0].x + dx, y: snake[0].y + dy};
 
-  /* Selvkollisjon */
-  for (let p of snake) {
-    if (p.x === head.x && p.y === head.y) {
-      running = false;
-      alert("Game over! Slangen traff seg selv.");
-      return;
+    // vegg-refleksjon
+    if (head.x < 0 || head.x >= sizeX) {
+      dx *= -1;
+      head.x = snake[0].x + dx;
     }
-  }
+    if (head.y < 0 || head.y >= sizeY) {
+      dy *= -1;
+      head.y = snake[0].y + dy;
+    }
 
-  snake.unshift(head);
+    // selvkollisjon
+    for (let p of snake) {
+      if (p.x === head.x && p.y === head.y) {
+        state = GAMEOVER;
+        alert("Game over! Slangen traff seg selv.");
+        return;
+      }
+    }
 
-  /* Stjernekollisjon */
-  let hit = stars.findIndex(s => s.x === head.x && s.y === head.y);
-  if (hit >= 0) {
-    if (askMultiplication()) {
-      speed = Math.max(60, speed - 10);
+    snake.unshift(head);
+
+    let hit = stars.findIndex(s => s.x === head.x && s.y === head.y);
+    if (hit >= 0) {
+      if (askMultiplication()) {
+        speed = Math.max(60, speed - 10);
+      } else {
+        snake.pop();
+      }
+      stars.splice(hit,1);
+
+      if (stars.length === 0) {
+        state = WIN;
+        winStartTime = Date.now();
+        spawnFireworks();
+        return;
+      }
     } else {
       snake.pop();
     }
-    stars.splice(hit, 1);
+  }
 
-    if (stars.length === 0) {
-      winSequence();
-      return;
+  else if (state === WIN) {
+    if (Date.now() - winStartTime > 5000) {
+      if (confirm("🎉 Gratulerer, du klarte alle stjernene!\nVil du spille igjen?")) {
+        initGame();
+      }
     }
-  } else {
-    snake.pop();
   }
 
   draw();
@@ -221,28 +210,27 @@ function update() {
 /* =========================
    Tastatur
    ========================= */
-
 document.addEventListener("keydown", e => {
-  if (e.key === "ArrowUp" && dy === 0) { dx = 0; dy = -1; }
-  if (e.key === "ArrowDown" && dy === 0) { dx = 0; dy = 1; }
-  if (e.key === "ArrowLeft" && dx === 0) { dx = -1; dy = 0; }
-  if (e.key === "ArrowRight" && dx === 0) { dx = 1; dy = 0; }
+  if (state !== PLAY) return;
+  if (e.key === "ArrowUp" && dy === 0) {dx = 0; dy = -1;}
+  if (e.key === "ArrowDown" && dy === 0) {dx = 0; dy = 1;}
+  if (e.key === "ArrowLeft" && dx === 0) {dx = -1; dy = 0;}
+  if (e.key === "ArrowRight" && dx === 0) {dx = 1; dy = 0;}
 });
 
 /* =========================
-   Spill‑loop
+   Game loop
    ========================= */
-
 function gameLoop() {
   update();
-  if (running) setTimeout(gameLoop, speed);
+  setTimeout(gameLoop, speed);
 }
 
-/* Start spillet */
+/* Start */
 initGame();
+gameLoop();
 
 </script>
-
 </body>
 </html>
 ``
