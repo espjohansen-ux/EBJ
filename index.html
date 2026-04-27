@@ -1,44 +1,138 @@
 <!DOCTYPE html>
 <html lang="no">
 <head>
-    <meta charset="UTF-8">
-    <title>Snake</title>
+<meta charset="UTF-8">
+<title>Diskonteringsoppgave</title>
+<style>
+  body {
+    font-family: Helvetica, Arial, sans-serif;
+    background: #f5f5f5;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+  }
 
-    <style>
-        body {
-            background: #111;
-            color: white;
-            font-family: Arial, sans-serif;
-            text-align: center;
-        }
+  .box {
+    display: none;
+    background: white;
+    padding: 30px;
+    width: 500px;
+    text-align: center;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+  }
 
-        canvas {
-            background: black;
-            border: 2px solid white;
-            margin-top: 10px;
-        }
-    </style>
+  .box.active {
+    display: block;
+  }
+
+  button {
+    padding: 10px 20px;
+    margin: 10px;
+    font-size: 16px;
+  }
+</style>
 </head>
+
 <body>
 
-<h1>🐍 Snake</h1>
-<p>Bruk piltastene</p>
+<!-- Box 1 -->
+<div class="box active" id="box1">
+  <h2>Skriv inn subjektnummer</h2>
+  <input type="text" id="subjectInput">
+  <br><br>
+  <button onclick="startExperiment()">OK</button>
+</div>
 
-<canvas id="game" width="400" height="400"></canvas>
+<!-- Box 2 -->
+<div class="box" id="box2">
+  <h2>Velkommen</h2>
+  <p>Du vil nå få en rekke valg.</p>
+  <p>Velg umiddelbart (U) eller forsinket (F).</p>
+  <button onclick="showBox(3)">OK</button>
+</div>
+
+<!-- Box 3 -->
+<div class="box" id="box3">
+  <h2 id="questionText"></h2>
+  <button onclick="recordChoice('U')">Umiddelbart</button>
+  <button onclick="recordChoice('F')">Forsinket</button>
+</div>
+
+<!-- Box 4 -->
+<div class="box" id="box4">
+  <h2>Takk for dine svar</h2>
+  <button onclick="downloadData()">Last ned resultater</button>
+</div>
 
 <script>
-    const canvas = document.getElementById("game");
-    const ctx = canvas.getContext("2d");
+let subjectNumber = "";
+let results = [];
 
-    const gridSize = 20;
-    const tiles = canvas.width / gridSize;
+const rewardPairs = [[200, 500], [150, 600]];
+const delays = ["3 timer", "6 timer", "12 timer", "1 dag", "3 dager", "1 uke", "3 uker", "1 måned", "3 måneder"];
 
-    let snake = [{ x: 10, y: 10 }];
-    let direction = { x: 1, y: 0 };
-    let food = randomFood();
-    let running = true;
+let pairIndex = 0;
+let delayIndex = 0;
 
-    function randomFood() {
-        return {
-            x: Math.floor(Math.random() * tiles),
-            y: Math.floor(Math.random() * tiles)
+function showBox(n) {
+  document.querySelectorAll('.box').forEach(b => b.classList.remove('active'));
+  document.getElementById('box' + n).classList.add('active');
+}
+
+function startExperiment() {
+  subjectNumber = document.getElementById("subjectInput").value.trim();
+  if (!subjectNumber) {
+    alert("Skriv inn subjektnummer");
+    return;
+  }
+  showBox(2);
+}
+
+function nextQuestion() {
+  if (pairIndex >= rewardPairs.length) {
+    showBox(4);
+    return;
+  }
+  const [ss, ll] = rewardPairs[pairIndex];
+  const delay = delays[delayIndex];
+  document.getElementById("questionText").innerText =
+    `Foretrekker du ${ss} kr nå eller ${ll} kr om ${delay}?`;
+}
+
+function recordChoice(choice) {
+  const [ss, ll] = rewardPairs[pairIndex];
+  const delay = delays[delayIndex];
+
+  results.push([subjectNumber, ss, ll, delay, choice]);
+
+  delayIndex++;
+  if (delayIndex >= delays.length) {
+    delayIndex = 0;
+    pairIndex++;
+  }
+  nextQuestion();
+}
+
+function downloadData() {
+  let csv = "Subject,SS,LL,Delay,Choice\n";
+  results.forEach(r => {
+    csv += r.join(",") + "\n";
+  });
+
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `Diskontering_${subjectNumber}.csv`;
+  a.click();
+}
+
+nextQuestion();
+</script>
+
+</body>
+</html>
+``
