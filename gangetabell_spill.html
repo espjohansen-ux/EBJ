@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html<head><html lang="no">
+<meta charset="UTF-8">
+<title>Gangetabell-labyrinten</title>
+<style>
+  body {
+    background: #222;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  canvas {
+    background: #111;
+    border: 3px solid white;
+    margin-top: 10px;
+  }
+</style>
+</head>
+
+<body>
+
+<h1>🧠 Gangetabell-labyrinten</h1>
+<p>Finn stjerner – løs gangestykker – pass deg for monstrene!</p>
+<p id="info"></p>
+
+<canvas id="game" width="400" height="400"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const tile = 40;
+let level = 0;
+let startTime = Date.now();
+let solved = 0;
+
+const levels = [
+  {
+    maze: [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,0,0,1,0,2,0,0,1],
+      [1,0,1,0,1,0,1,1,0,1],
+      [1,0,1,0,0,0,0,1,0,1],
+      [1,0,1,1,1,1,0,1,0,1],
+      [1,0,0,0,0,1,0,0,0,1],
+      [1,1,1,1,0,1,1,1,0,1],
+      [1,2,0,1,0,0,0,1,0,1],
+      [1,0,0,0,0,1,2,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ],
+    max: 5
+  },
+  {
+    maze: [
+      [1,1,1,1,1,1,1,1,1,1],
+      [1,0,2,0,1,0,2,0,0,1],
+      [1,0,1,0,1,0,1,1,0,1],
+      [1,0,1,0,0,0,0,1,0,1],
+      [1,0,1,1,1,1,0,1,0,1],
+      [1,0,0,0,0,1,0,0,0,1],
+      [1,1,1,1,0,1,1,1,0,1],
+      [1,2,0,1,0,0,0,1,0,1],
+      [1,0,0,0,0,1,2,0,0,1],
+      [1,1,1,1,1,1,1,1,1,1]
+    ],
+    max: 10
+  }
+];
+
+let maze = JSON.parse(JSON.stringify(levels[level].maze));
+
+let player = {x:1,y:1};
+let enemy = {x:8,y:8,dx:1};
+
+const correctSound = new Audio("https://actions.google.com/sounds/v1/cartoon/clang_and_wobble.ogg");
+
+function draw() {
+  ctx.clearRect(0,0,400,400);
+
+  for (let y=0;y<10;y++) {
+    for (let x=0;x<10;x++) {
+      if (maze[y][x]===1) {
+        ctx.fillStyle="#555";
+        ctx.fillRect(x*tile,y*tile,tile,tile);
+      }
+      if (maze[y][x]===2) {
+        ctx.fillStyle="yellow";
+        ctx.beginPath();
+        ctx.arc(x*tile+20,y*tile+20,8,0,Math.PI*2);
+        ctx.fill();
+      }
+    }
+  }
+
+  // enemy
+  ctx.fillStyle="red";
+  ctx.fillRect(enemy.x*tile+8,enemy.y*tile+8,24,24);
+
+  // player
+  ctx.fillStyle="cyan";
+  ctx.fillRect(player.x*tile+6,player.y*tile+6,28,28);
+
+  const time = Math.floor((Date.now()-startTime)/1000);
+  document.getElementById("info").innerText =
+    `Nivå: ${level+1} | Løste oppgaver: ${solved} | Tid: ${time}s`;
+}
+
+function askQuestion() {
+  const a = Math.ceil(Math.random()*levels[level].max);
+  const b = Math.ceil(Math.random()*levels[level].max);
+  const answer = prompt(`Hva er ${a} × ${b}?`);
+  if (parseInt(answer) === a*b) {
+    correctSound.play();
+    solved++;
+    return true;
+  } else {
+    startTime -= 5000; // tidsstraff
+    alert("Feil! Prøv igjen.");
+    return false;
+  }
+}
+
+function move(dx,dy) {
+  const nx = player.x + dx;
+  const ny = player.y + dy;
+  if (maze[ny][nx]===1) return;
+
+  if (maze[ny][nx]===2) {
+    if (askQuestion()) {
+      maze[ny][nx]=0;
+    } else {
+      return;
+    }
+  }
+  player.x=nx;
+  player.y=ny;
+}
+
+function moveEnemy() {
+  if (maze[enemy.y][enemy.x+enemy.dx]===1) enemy.dx*=-1;
+  enemy.x+=enemy.dx;
+  if (enemy.x===player.x && enemy.y===player.y) {
+    startTime -= 5000;
+  }
+}
+
+document.addEventListener("keydown",e=>{
+  if (e.key==="ArrowUp") move(0,-1);
+  if (e.key==="ArrowDown") move(0,1);
+  if (e.key==="ArrowLeft") move(-1,0);
+  if (e.key==="ArrowRight") move(1,0);
+  draw();
+});
+
+setInterval(()=>{
+  moveEnemy();
+  draw();
+},700);
+
+draw();
+</script>
+
+</body>
+</html>
+``
