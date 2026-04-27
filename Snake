@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="no">
+<head>
+<meta charset="UTF-8">
+<title>Snake og gangetabellen</title>
+<style>
+  body {
+    background: #111;
+    color: white;
+    font-family: Arial, sans-serif;
+    text-align: center;
+  }
+  canvas {
+    background: black;
+    border: 3px solid white;
+    margin-top: 10px;
+  }
+</style>
+</head>
+
+<body>
+<h1>🐍 Snake + gangetabellen</h1>
+<p>Samle stjerner. Løs gangestykker. Ikke treff deg selv!</p>
+<p id="status"></p>
+
+<canvas id="game" width="600" height="600"></canvas>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const grid = 20;
+const sizeX = canvas.width / grid;
+const sizeY = canvas.height / grid;
+
+let snake = [{x: 15, y: 15}];
+let dx = 1, dy = 0;
+let speed = 200;
+let running = true;
+
+let stars = [];
+const STAR_COUNT = 20;
+
+function randomPos() {
+  return {
+    x: Math.floor(Math.random() * sizeX),
+    y: Math.floor(Math.random() * sizeY)
+  };
+}
+
+// plasser stjerner
+while (stars.length < STAR_COUNT) {
+  stars.push(randomPos());
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+
+  // stjerner
+  ctx.fillStyle = "yellow";
+  stars.forEach(s => {
+    ctx.beginPath();
+    ctx.arc(s.x*grid+10, s.y*grid+10, 6, 0, Math.PI*2);
+    ctx.fill();
+  });
+
+  // slange
+  ctx.fillStyle = "lime";
+  snake.forEach(p => {
+    ctx.fillRect(p.x*grid, p.y*grid, grid-1, grid-1);
+  });
+
+  document.getElementById("status").innerText =
+    `Lengde: ${snake.length} | Stjerner igjen: ${stars.length}`;
+}
+
+function askMultiplication() {
+  const a = Math.ceil(Math.random()*10);
+  const b = Math.ceil(Math.random()*10);
+  const answer = prompt(`Hva er ${a} × ${b}?`);
+
+  return parseInt(answer) === a*b;
+}
+
+function update() {
+  if (!running) return;
+
+  let head = {x: snake[0].x + dx, y: snake[0].y + dy};
+
+  // refleksjon i vegg
+  if (head.x < 0 || head.x >= sizeX) {
+    dx *= -1;
+    head.x = snake[0].x + dx;
+  }
+  if (head.y < 0 || head.y >= sizeY) {
+    dy *= -1;
+    head.y = snake[0].y + dy;
+  }
+
+  // selvkollisjon → game over
+  for (let p of snake) {
+    if (p.x === head.x && p.y === head.y) {
+      running = false;
+      alert("Game over! Slangen traff seg selv.");
+      return;
+    }
+  }
+
+  snake.unshift(head);
+
+  // stjernekollisjon
+  let hit = stars.findIndex(s => s.x === head.x && s.y === head.y);
+  if (hit >= 0) {
+    if (askMultiplication()) {
+      speed = Math.max(60, speed - 10);
+    } else {
+      snake.pop(); // ingen vekst
+    }
+    stars.splice(hit,1);
+  } else {
+    snake.pop();
+  }
+
+  draw();
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "ArrowUp" && dy === 0) {dx = 0; dy = -1;}
+  if (e.key === "ArrowDown" && dy === 0) {dx = 0; dy = 1;}
+  if (e.key === "ArrowLeft" && dx === 0) {dx = -1; dy = 0;}
+  if (e.key === "ArrowRight" && dx === 0) {dx = 1; dy = 0;}
+});
+
+function gameLoop() {
+  update();
+  if (running) setTimeout(gameLoop, speed);
+}
+
+draw();
+gameLoop();
+</script>
+</body>
+</html>
+``
